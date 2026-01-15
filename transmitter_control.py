@@ -7,7 +7,7 @@ from dataclasses import dataclass
 TX_LISTEN_IP = "0.0.0.0"
 TX_CMD_PORT = 5006
 
-SRT_DST_IP = "10.42.0.45"   # receiver machine IP
+SRT_DST_IP = "10.42.0.45"   
 SRT_DST_PORT = 7000
 
 VIDEO_FILE = "/home/muhammad/Downloads/PacificRim.mp4"
@@ -146,8 +146,6 @@ class Transmitter:
             need = self.need_restart
             running = self.is_running_locked()
 
-        # Important: don’t restart on APPLY unless stream is already running.
-        # Otherwise APPLY before PLAY forces an SRT connect attempt and fails.
         if need and running:
             self.restart()
 
