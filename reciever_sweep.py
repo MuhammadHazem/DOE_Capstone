@@ -1,12 +1,3 @@
-# receiver_sweep_ui.py
-# Discrete slider UI + sweep runner that records the received SRT stream and computes VMAF, PSNR, SSIM.
-# No matplotlib required.
-#
-# Repeatable frames approach:
-# - Transmitter is capable of looping forever (Option 1)
-# - For each sweep run we do: APPLY settings, STOP, PLAY, wait, then record for TEST_DURATION
-# This guarantees the transmitter restarts from START_TS each time.
-
 import os
 import csv
 import json
@@ -17,24 +8,20 @@ import subprocess
 import tkinter as tk
 from tkinter import ttk
 
-# -------------------------
-# Adjust these
-# -------------------------
-TX_IP = "10.42.0.1"        # transmitter machine IP
-TX_CMD_PORT = 5006         # must match transmitter_control.py
+
+TX_IP = "10.42.0.1"       
+TX_CMD_PORT = 5006        
 RX_LISTEN_URL_BASE = "srt://0.0.0.0:7000?mode=listener"
 
 REF_FILE = "/home/muhammad/Downloads/PacificRim.mp4"
 REF_START = "00:06:00"
 TEST_DURATION = 60
 
-# How long to wait after transmitter restart/play before recording
 TX_SETTLE_SECONDS = 2.0
 
-# Receiver-side hard timeouts
-SRT_CONNECT_TIMEOUT_US = 5_000_000          # 5s connect timeout at SRT layer
+SRT_CONNECT_TIMEOUT_US = 5_000_000      
 RECORD_HARD_TIMEOUT_SEC = TEST_DURATION + 20
-METRICS_HARD_TIMEOUT_SEC = 300              # VMAF can be slow; raise if needed
+METRICS_HARD_TIMEOUT_SEC = 300             
 
 WORKDIR = "sweeps"
 CAPTURE_DIR = os.path.join(WORKDIR, "captures")
@@ -46,9 +33,7 @@ MODEL_PATH = "/usr/local/share/model/vmaf_v0.6.1.json"
 os.makedirs(CAPTURE_DIR, exist_ok=True)
 os.makedirs(METRICS_DIR, exist_ok=True)
 
-# -------------------------
-# Discrete slider widget
-# -------------------------
+
 class DiscreteSlider(ttk.Frame):
     def __init__(self, parent, title, points, on_change, initial=None):
         super().__init__(parent)
@@ -98,9 +83,6 @@ class DiscreteSlider(ttk.Frame):
         idx = self._snap_index(self.scale.get())
         self._set_index(idx, fire=True)
 
-# -------------------------
-# UDP send to transmitter
-# -------------------------
 def tx_send(cmd: str):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -108,9 +90,6 @@ def tx_send(cmd: str):
     finally:
         s.close()
 
-# -------------------------
-# Capture and metrics helpers
-# -------------------------
 def run_cmd_with_timeout(cmd, timeout_sec: int, step_name: str):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
@@ -183,7 +162,6 @@ def compute_metrics(run_id: str, capture_ts_path: str, target_w: int, target_h: 
 	    "-i", capture_ts_path,
 	    "-an",
 	    "-vf", "setpts=N/FRAME_RATE/TB,format=yuv420p",
-	    # reencode with fixed timestamps (same settings for every run)
 	    "-c:v", "libx264",
 	    "-preset", "ultrafast",
 	    "-crf", "18",
@@ -337,7 +315,6 @@ def apply_all_settings(cfg: dict):
     tx_send("APPLY")
 
 def restart_tx_for_repeatable_frames():
-    # STOP then PLAY so TX ffmpeg restarts from START_TS each run
     tx_send("STOP")
     time.sleep(0.2)
     tx_send("PLAY")
@@ -372,9 +349,6 @@ def parse_last_number_after(text: str, token: str):
     except:
         return None
 
-# -------------------------
-# UI + runner
-# -------------------------
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -450,7 +424,6 @@ class App(tk.Tk):
         self.running = False
         self.set_status("Stopping after current run")
 
-    # Slider callbacks
     def on_res(self, v):
         self.current["res"] = v
         w, h = parse_res(v)
